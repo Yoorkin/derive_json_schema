@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "username/derive_json_schema"
+package "Yoorkin/derive_json_schema"
 
 import(
   "moonbitlang/core/list"

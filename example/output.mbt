@@ -16,11 +16,13 @@ pub fn Pos::get_schema() -> Json {
         "default": "*",
       },
       "str": { "type": "string", "description": "" },
-      "flag": {
+      "flag1": {
         "type": "boolean",
         "description": " Optional Boolean",
         "default": false,
       },
+      "flag2": { "type": "integer", "description": "", "default": 1 },
+      "flag3": { "type": "number", "description": "", "default": 1.2 },
       "rare_arr": { "type": "array", "items": { "type": ["integer", "null"] } },
     },
     "required": ["tag", "int_arr", "rare_arr"],

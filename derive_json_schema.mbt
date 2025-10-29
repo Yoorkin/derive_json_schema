@@ -52,10 +52,10 @@ fn mk_constr(constr : String) -> @syntax.ConstrId {
   { id: Ident(name=constr), loc }
 }
 
-///|
-fn mk_binder(binder : String) -> @syntax.Binder {
-  { name: binder, loc }
-}
+// ///|
+// fn mk_binder(binder : String) -> @syntax.Binder {
+//   { name: binder, loc }
+// }
 
 ///|
 fn mk_json_object(map : Array[(String, @syntax.Expr)]) -> @syntax.Expr {
@@ -83,7 +83,7 @@ enum Schema {
   String(mut enums~ : Array[Constant]?) //(min_len~ : Int?, max_len~ : Int?, format~ : String?, enum_~ : Array[String]?)
   Boolean
   Integer //(min~ : Int?, max~ : Int?, mut enums~ : Array[Constant]?)
-  // Number
+  Number
   Object(properties~ : Array[Property], required~ : Array[String])
   Array(item~ : Schema)
   Nullable(Schema)
@@ -110,6 +110,7 @@ fn ty_to_schema(ty : @syntax.Type) -> Schema {
         "String" => String(enums=None)
         "Int" => Integer
         "Bool" => Boolean
+        "Double" => Number
         _ => abort("Json schema error: type \{name} is not supported yet.")
       }
     Tuple(..) => abort("Json schema error: tuple type is not supported yet.")
@@ -300,6 +301,10 @@ fn schema_to_ast(
     Boolean =>
       mk_json_object(
         [("type", maybe_nullable(mk_string("boolean"))), ..extra_info],
+      )
+    Number =>
+      mk_json_object(
+        [("type", maybe_nullable(mk_string("number"))), ..extra_info],
       )
     Integer =>
       mk_json_object(

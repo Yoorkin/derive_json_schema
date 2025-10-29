@@ -14,7 +14,11 @@ struct Pos {
   str : String?
   /// Optional Boolean
   #json.default(boolean(false))
-  flag : Bool?
+  flag1 : Bool?
+  #json.default(integer("1"))
+  flag2 : Int?
+  #json.default(number("1.2"))
+  flag3 : Double?
   /// Array of `Int | null`. Should be rare used.
   rare_arr : Array[Int?]
 }
