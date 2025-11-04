@@ -1,39 +1,49 @@
 ///|
 #json.generated
-pub fn Pos::get_schema() -> Json {
+fn Params::get_schema() -> Json {
   {
     "type": "object",
+    "required": ["kind", "path", "regex"],
     "properties": {
-      "tag": {
+      "kind": {
         "type": "string",
-        "description": "stirng with enum",
-        "enum": ["a", "b", "c"],
+        "enum": ["regex", "moonbit_definition", "moonbit_references"],
+        "description": "The kind of search to perform. \n'regex' performs traditional regex-based file content search. \n'moonbit_definition' performs fuzzy symbolic search to find MoonBit symbol definitions \n- note that when using 'moonbit_definition', \nthe regex parameter can be imprecise as the system will perform fuzzy search \nto find the most relevant symbols. 'moonbit_references' finds all references \nto a MoonBit symbol using the moon IDE tool.\",",
       },
-      "int_arr": {
-        "type": "array",
-        "items": { "type": "integer" },
-        "description": "array of int",
-      },
-      "str_with_default": {
+      "path": {
         "type": "string",
-        "description": "Optional string.\nThe type must be T?. A default value is not necessary.",
+        "description": "The path of the directory or file to search in, relative to the current working directory.",
+      },
+      "file_pattern": {
+        "type": "string",
         "default": "*",
+        "description": "Glob pattern to filter files (e.g., '*.ts', '*.js', '*.py', etc.). Defaults to '*' to search all files.",
       },
-      "str": { "type": "string" },
-      "flag1": {
-        "type": "boolean",
-        "description": "Optional Boolean",
-        "default": false,
+      "context_lines": {
+        "type": "integer",
+        "default": 2,
+        "description": "Number of context lines to show before and after each match. Defaults to 2.",
       },
-      "flag2": { "type": "integer", "default": 1 },
-      "flag3": { "type": "number", "default": 1.2 },
-      "rare_arr": {
-        "type": "array",
-        "items": { "type": ["integer", "null"] },
-        "description": "Array of `Int | null`. Should be rare used.",
+      "regex": {
+        "type": "string",
+        "description": "The search pattern. \nFor 'regex' kind: regular expression pattern with full regex syntax. \nFor 'moonbit_definition' kind: symbol name or partial name (can be imprecise) for fuzzy symbolic search.",
       },
     },
-    "required": ["tag", "int_arr", "rare_arr"],
   }
 }
+
+///|
+#json.generated
+fn Table::get_schema() -> Json {
+  {
+    "type": "object",
+    "required": ["head", "tail"],
+    "properties": {
+      "head": { "$ref": "#/definitions/Params" },
+      "tail": { "type": "array", "items": { "$ref": "#/definitions/Params" } },
+    },
+    "definitions": { "Params": Params::get_schema() },
+  }
+}
+
 

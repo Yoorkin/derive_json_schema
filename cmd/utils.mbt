@@ -38,35 +38,36 @@
 //   }
 // }
 
-///|
-fn @wasi.Fd::open(
-  path : String,
-  open_flags? : @wasi.OpenFlags = @wasi.OpenFlags::new(),
-  rights? : @wasi.Rights = @wasi.Rights::new(),
-) -> @wasi.Fd raise {
-  for i = 3; ; i = i + 1 {
-    let dir = @wasi.Fd(i).fd_prestat_dir_name() catch {
-      Badf => fail("Failed to find preopened directories")
-      e => fail_with("Failed to find preopened directories", e)
-    }
-    let dir = dir.trim(char_set="\u{0}") // for wasmer
-    if path.strip_prefix(dir) is Some(rel_path) {
-      let rel_path = if rel_path is ['/', ..] { rel_path[1:] } else { rel_path }
-      return @wasi.Fd(i).path_open(
-        @wasi.LookupFlags::new(),
-        rel_path.to_string(),
-        open_flags,
-        rights,
-        @wasi.Rights::new(),
-        @wasi.FdFlags::new(),
-      ) catch {
-        e => fail_with("Failed to open file '\{path}'", e)
-      }
-    } else {
-      continue
-    }
-  }
-}
+
+// ///|
+// fn @wasi.Fd::open(
+//   path : String,
+//   open_flags? : @wasi.OpenFlags = @wasi.OpenFlags::new(),
+//   rights? : @wasi.Rights = @wasi.Rights::new(),
+// ) -> @wasi.Fd raise {
+//   for i = 3; ; i = i + 1 {
+//     let dir = @wasi.Fd(i).fd_prestat_dir_name() catch {
+//       Badf => fail("Failed to find preopened directories")
+//       e => fail_with("Failed to find preopened directories", e)
+//     }
+//     let dir = dir.trim(char_set="\u{0}") // for wasmer
+//     if path.strip_prefix(dir) is Some(rel_path) {
+//       let rel_path = if rel_path is ['/', ..] { rel_path[1:] } else { rel_path }
+//       return @wasi.Fd(i).path_open(
+//         @wasi.LookupFlags::new(),
+//         rel_path.to_string(),
+//         open_flags,
+//         rights,
+//         @wasi.Rights::new(),
+//         @wasi.FdFlags::new(),
+//       ) catch {
+//         e => fail_with("Failed to open file '\{path}'", e)
+//       }
+//     } else {
+//       continue
+//     }
+//   }
+// }
 
 ///|
 pub fn eprintln(msg : String) -> Unit {
@@ -113,8 +114,8 @@ pub fn read_input() -> String raise {
   }
 }
 
-///|
-fn[T] abort(msg : String) -> T {
-  eprintln(msg)
-  exit(1)
-}
+// ///|
+// fn[T] abort(msg : String) -> T {
+//   eprintln(msg)
+//   exit(1)
+// }

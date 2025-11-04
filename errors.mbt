@@ -1,9 +1,9 @@
 ///|
-suberror Reraise (String, Error?)
+pub suberror Reraise (String, Error?)
 
 ///|
 #callsite(autofill(loc))
-fn[A] reraise(e : Error, loc~ : SourceLoc) -> A raise {
+pub fn[A] reraise(e : Error, loc~ : SourceLoc) -> A raise {
   match e {
     Reraise((msg, cause)) =>
       raise Reraise(
@@ -36,7 +36,7 @@ fn[A] reraise(e : Error, loc~ : SourceLoc) -> A raise {
 
 ///|
 #callsite(autofill(loc))
-fn[A] fail_with(message : String, cause : Error, loc~ : SourceLoc) -> A raise {
+pub fn[A] fail_with(message : String, cause : Error, loc~ : SourceLoc) -> A raise {
   raise Reraise(
     (
       (
@@ -49,7 +49,7 @@ fn[A] fail_with(message : String, cause : Error, loc~ : SourceLoc) -> A raise {
 }
 
 ///|
-impl Show for Reraise with output(error, logger) {
+pub impl Show for Reraise with output(error, logger) {
   guard error is Reraise((msg, cause))
   logger.write_string(msg + "\n")
   if cause is Some(error) {

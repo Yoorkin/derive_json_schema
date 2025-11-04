@@ -1,0 +1,15 @@
+{
+  "import": [
+    "moonbitlang/parser/basic",
+    "moonbitlang/parser",
+    "moonbitlang/formatter",
+    "peter-jerry-ye/wasi",
+    "Yoorkin/derive_json_schema"
+  ],
+  "is-main": true,
+  "link": {
+    "wasm": {
+      "export-memory-name": "memory"
+    }
+  }
+}

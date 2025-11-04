@@ -1,1 +1,1 @@
-wasmer run .. --dir . -- ./input.mbt -o ./output.mbt
+cat ./input.mbt | wasmer run .. --dir . > ./output.mbt

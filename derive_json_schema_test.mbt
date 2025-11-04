@@ -18,6 +18,16 @@ test {
     #|  /// doc for z
     #|  z : Int?
     #|}
+    #|
+    #|/// doc for location
+    #|#json.schema
+    #|struct Location {
+    #|  /// start pos
+    #|  start : Pos?
+    #|  /// end pos
+    #|  end : Pos
+    #|  points : Array[Pos]
+    #|}
   let (ast, _) = @parser.parse_string(source)
   let ast = derive_json_schema(ast)
   let result = @formatter.impls_to_string(ast)
@@ -26,25 +36,43 @@ test {
     content=(
       #|///|
       #|#json.generated
-      #|pub fn Pos::get_schema() -> Json {
+      #|fn Pos::get_schema() -> Json {
       #|  {
       #|    "type": "object",
+      #|    "required": ["v", "w"],
       #|    "properties": {
       #|      "v": { "type": "string", "enum": ["a", "b", "c"] },
       #|      "w": { "type": "array", "items": { "type": "integer" } },
       #|      "x": {
       #|        "type": "string",
-      #|        "description": "doc for x\ndoc2",
       #|        "default": "*",
+      #|        "description": "doc for x\ndoc2",
       #|      },
-      #|      "y": { "type": "boolean", "description": "doc for y", "default": false },
+      #|      "y": { "type": "boolean", "default": false, "description": "doc for y" },
       #|      "z": { "type": "integer", "description": "doc for z" },
       #|    },
-      #|    "required": ["v", "w"],
+      #|    "description": "\ndoc for pos",
+      #|  }
+      #|}
+      #|
+      #|///|
+      #|#json.generated
+      #|fn Location::get_schema() -> Json {
+      #|  {
+      #|    "type": "object",
+      #|    "required": ["end", "points"],
+      #|    "properties": {
+      #|      "start": { "$ref": "#/definitions/Pos", "description": "start pos" },
+      #|      "end": { "$ref": "#/definitions/Pos", "description": "end pos" },
+      #|      "points": { "type": "array", "items": { "$ref": "#/definitions/Pos" } },
+      #|    },
+      #|    "description": "doc for location",
+      #|    "definitions": { "Pos": Pos::get_schema() },
       #|  }
       #|}
       #|
       #|
+
     ),
   )
 }
@@ -89,13 +117,13 @@ test "array with nullable" {
     content=(
       #|///|
       #|#json.generated
-      #|pub fn Pos::get_schema() -> Json {
+      #|fn Pos::get_schema() -> Json {
       #|  {
       #|    "type": "object",
+      #|    "required": ["w"],
       #|    "properties": {
       #|      "w": { "type": "array", "items": { "type": ["integer", "null"] } },
       #|    },
-      #|    "required": ["w"],
       #|  }
       #|}
       #|

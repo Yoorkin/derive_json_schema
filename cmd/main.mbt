@@ -1,4 +1,7 @@
 ///|
+using @derive_json_schema {reraise, fail_with, derive_json_schema}
+
+///|
 fn main {
   try {
     let source = read_input() catch { e => reraise(e) }

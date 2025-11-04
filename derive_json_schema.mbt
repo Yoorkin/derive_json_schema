@@ -71,7 +71,7 @@ fn mk_json_object(map : Array[(String, @syntax.Expr)]) -> @syntax.Expr {
 }
 
 ///|
-struct Property {
+priv struct Property {
   name : String
   type_ : Schema
   default : Constant?
@@ -79,7 +79,7 @@ struct Property {
 }
 
 ///|
-enum Schema {
+priv enum Schema {
   String(mut enums~ : Array[Constant]?) //(min_len~ : Int?, max_len~ : Int?, format~ : String?, enum_~ : Array[String]?)
   Boolean
   Integer //(min~ : Int?, max~ : Int?, mut enums~ : Array[Constant]?)
@@ -87,10 +87,11 @@ enum Schema {
   Object(properties~ : Array[Property], required~ : Array[String])
   Array(item~ : Schema)
   Nullable(Schema)
+  Custom(String)
 }
 
 ///|
-enum Constant {
+priv enum Constant {
   String(String)
   Integer(String)
   Number(String)
@@ -111,7 +112,17 @@ fn ty_to_schema(ty : @syntax.Type) -> Schema {
         "Int" => Integer
         "Bool" => Boolean
         "Double" => Number
-        _ => abort("Json schema error: type \{name} is not supported yet.")
+        "Int16"
+        | "Int64"
+        | "UInt16"
+        | "UInt"
+        | "UInt64"
+        | "Float"
+        | "BigInt"
+        | "Result"
+        | "Option" =>
+          abort("Json schema error: type \{name} is not supported yet.")
+        custom => Custom(custom)
       }
     Tuple(..) => abort("Json schema error: tuple type is not supported yet.")
     Object(_) => abort("Json schema error: trait object is not supported.")
@@ -270,11 +281,17 @@ fn constant_to_ast(c : Constant) -> @syntax.Expr {
 }
 
 ///|
+type Entries = Array[(String, @syntax.Expr)]
+
+///|
+type Definitions = Array[(String, @syntax.Expr)]
+
+///|
 fn schema_to_ast(
   schema : Schema,
   nullable? : Bool = false,
-  extra_info? : Array[(String, @syntax.Expr)] = [],
-) -> @syntax.Expr {
+  definitions~ : Definitions,
+) -> Entries {
 
   // Handle null, if the developer wishes to pass `null` explicitly.
   // This should be a rare case.
@@ -296,52 +313,60 @@ fn schema_to_ast(
 
   match schema {
     String(enums~) => {
-      let arr = [("type", maybe_nullable(mk_string("string"))), ..extra_info]
+      let arr = [("type", maybe_nullable(mk_string("string")))]
       if enums is Some(xs) {
         arr.push(("enum", mk_array(xs.map(constant_to_ast))))
       }
-      mk_json_object(arr)
+      arr
     }
-    Boolean =>
-      mk_json_object(
-        [("type", maybe_nullable(mk_string("boolean"))), ..extra_info],
+    Boolean => [("type", maybe_nullable(mk_string("boolean")))]
+    Number => [("type", maybe_nullable(mk_string("number")))]
+    Integer => [("type", maybe_nullable(mk_string("integer")))]
+    Array(item~) => {
+      let item_entries = schema_to_ast(item, definitions~)
+      let entries = [
+        ("type", maybe_nullable(mk_string("array"))),
+        ("items", mk_json_object(item_entries)),
+      ]
+      entries
+    }
+    Nullable(schema) => schema_to_ast(schema, nullable=true, definitions~)
+    Custom(typename) => {
+      let type_name : @syntax.TypeName = {
+        name: @syntax.LongIdent::Ident(name=typename),
+        is_object: false,
+        loc,
+      }
+      let method_name : @syntax.Label = { name: "get_schema", loc }
+      let func = @syntax.Method(type_name~, method_name~, loc~)
+      let get_schema_ast = @syntax.Apply(
+        func~,
+        args=@list.empty(),
+        attr=NoAttr,
+        loc~,
       )
-    Number =>
-      mk_json_object(
-        [("type", maybe_nullable(mk_string("number"))), ..extra_info],
-      )
-    Integer =>
-      mk_json_object(
-        [("type", maybe_nullable(mk_string("integer"))), ..extra_info],
-      )
-    Array(item~) =>
-      mk_json_object(
-        [
-          ("type", maybe_nullable(mk_string("array"))),
-          ("items", schema_to_ast(item)),
-          ..extra_info,
-        ],
-      )
-    Nullable(schema) => schema_to_ast(schema, nullable=true, extra_info~)
+      definitions.push((typename, get_schema_ast))
+      [("$ref", mk_string("#/definitions/\{typename}"))]
+    }
     Object(properties~, required~) => {
-      let properties = properties.map(p => {
-        let extra_info = []
-        if p.description.trim(char_set="\n\t ") != "" {
-          extra_info.push(("description", mk_string(p.description)))
-        }
+      let entries = [
+        ("type", maybe_nullable(mk_string("object"))),
+        ("required", mk_array(required.map(mk_string))),
+      ]
+      let result_props = []
+      for p in properties {
+        let ty = if p.type_ is Nullable(ty) { ty } else { p.type_ }
+        let prop_entries = schema_to_ast(ty, definitions~)
         if p.default is Some(c) {
-          extra_info.push(("default", constant_to_ast(c)))
+          prop_entries.push(("default", constant_to_ast(c)))
         }
-        (p.name, schema_to_ast(p.type_, extra_info~))
-      })
-      mk_json_object(
-        [
-          ("type", maybe_nullable(mk_string("object"))),
-          ("properties", mk_json_object(properties)),
-          ("required", mk_array(required.map(mk_string))),
-          ..extra_info,
-        ],
-      )
+        if p.description.trim(char_set="\n\t ") != "" {
+          prop_entries.push(("description", mk_string(p.description)))
+        }
+        result_props.push((p.name, mk_json_object(prop_entries)))
+      }
+      entries.push(("properties", mk_json_object(result_props)))
+      entries
     }
   }
 }
@@ -360,8 +385,22 @@ impl @syntax.IterVisitor for Env with visit_Impl_TopTypeDef(self, decl) {
       Variant(_) => abort("Internal error: enum is not supported yet.")
       Record(fields) => {
         let schema = record_to_schema(fields)
-        let expr = schema_to_ast(schema)
-        expr
+        let definitions = []
+        let entries = schema_to_ast(schema, definitions~)
+        let description = try! decl.doc.content
+          .iter()
+          .map(line => line.trim_start(char_set="\n\t ").to_string())
+          .join("\n")
+          .escape()[1:-1].to_string()
+        if description != "" {
+          entries.push(("description", mk_string(description)))
+        }
+        if !definitions.is_empty() {
+          // dedup
+          let definitions = Map::from_array(definitions)
+          entries.push(("definitions", mk_json_object(definitions.to_array())))
+        }
+        mk_json_object(entries)
       }
     }
     let attr_generated : @attribute.Attribute = {

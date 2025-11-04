@@ -1,24 +1,31 @@
-///|
-/// doc for pos
 #json.schema
-struct Pos {
-  /// stirng with enum
-  #json.enumerate(string("a", "b", "c"))
-  tag : String
-  /// array of int
-  int_arr : Array[Int]
-  /// Optional string.
-  /// The type must be T?. A default value is not necessary.
+priv struct Params {
+  /// The kind of search to perform. 
+  /// 'regex' performs traditional regex-based file content search. 
+  /// 'moonbit_definition' performs fuzzy symbolic search to find MoonBit symbol definitions 
+  /// - note that when using 'moonbit_definition', 
+  /// the regex parameter can be imprecise as the system will perform fuzzy search 
+  /// to find the most relevant symbols. 'moonbit_references' finds all references 
+  /// to a MoonBit symbol using the moon IDE tool.",
+  #json.enumerate(string("regex", "moonbit_definition", "moonbit_references"))
+  kind : String
+  /// The path of the directory or file to search in, relative to the current working directory.
+  path : String
+  /// Glob pattern to filter files (e.g., '*.ts', '*.js', '*.py', etc.). Defaults to '*' to search all files.
   #json.default(string("*"))
-  str_with_default : String?
-  str : String?
-  /// Optional Boolean
-  #json.default(boolean(false))
-  flag1 : Bool?
-  #json.default(integer("1"))
-  flag2 : Int?
-  #json.default(number("1.2"))
-  flag3 : Double?
-  /// Array of `Int | null`. Should be rare used.
-  rare_arr : Array[Int?]
+  file_pattern : String?
+  /// Number of context lines to show before and after each match. Defaults to 2.
+  #json.default(integer("2"))
+  context_lines : Int?
+  /// The search pattern. 
+  /// For 'regex' kind: regular expression pattern with full regex syntax. 
+  /// For 'moonbit_definition' kind: symbol name or partial name (can be imprecise) for fuzzy symbolic search.
+  regex : String
+} 
+
+
+#json.schema
+struct Table {
+  head : Params
+  tail : Array[Params]
 }
