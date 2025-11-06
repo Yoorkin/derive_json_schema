@@ -1,6 +1,6 @@
 {
   "name": "moonbitlang/json_deriving",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "deps": {
     "moonbitlang/formatter": "0.1.1",
     "moonbitlang/parser": "0.1.11",
