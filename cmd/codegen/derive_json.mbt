@@ -9,7 +9,7 @@ using @list {type List, empty}
 ///|
 fn is_json_derive(
   attrs : List[@attribute.Attribute],
-) -> (DeriveFlag, DeriveFlag, DeriveFlag) {
+) -> (DeriveFlag, DeriveFlag, DeriveFlag) raise {
   let mut decode = Nothing
   let mut encode = Nothing
   let mut schema = Nothing
@@ -29,7 +29,7 @@ fn is_json_derive(
               encode = Derive(private=false)
             Expr(Ident({ qual: None, name: SCHEMA })) =>
               schema = Derive(private=false)
-            _ => abort("Unsupported property in #\{NAMESPACE}.\{DERIVE}")
+            _ => fail("Unsupported property in #\{NAMESPACE}.\{DERIVE}")
           }
         }
       // TODO: clean up duplicated code
@@ -47,7 +47,7 @@ fn is_json_derive(
               encode = Derive(private=true)
             Expr(Ident({ qual: None, name: SCHEMA })) =>
               schema = Derive(private=true)
-            _ => abort("Unsupported property in #\{NAMESPACE}.\{DERIVE}")
+            _ => fail("Unsupported property in #\{NAMESPACE}.\{DERIVE}")
           }
         }
       _ => ()
@@ -56,15 +56,15 @@ fn is_json_derive(
   return (decode, encode, schema)
 }
 
-///|
-fn is_generated(attrs : List[@attribute.Attribute]) -> Bool {
-  for attr in attrs {
-    if attr.parsed is Some(Ident({ qual: Some(NAMESPACE), name: GENERATED })) {
-      return true
-    }
-  }
-  false
-}
+// ///|
+// fn is_generated(attrs : List[@attribute.Attribute]) -> Bool {
+//   for attr in attrs {
+//     if attr.parsed is Some(Ident({ qual: Some(NAMESPACE), name: GENERATED })) {
+//       return true
+//     }
+//   }
+//   false
+// }
 
 ///|
 let pos : @basic.Position = { cnum: 0, fname: "", lnum: 0, bol: 0 }
@@ -130,10 +130,10 @@ priv enum DeriveFlag {
 }
 
 ///|
-fn ty_to_schema(ty : @syntax.Type) -> Schema {
+fn ty_to_schema(ty : @syntax.Type) -> Schema raise {
   match ty {
     Option(ty=Option(_), loc~, ..) =>
-      abort("Json schema error (\{loc}): type `T??` is unsupported.")
+      fail("Json schema error (\{loc}): type `T??` is unsupported.")
     Option(ty~, ..) => Nullable(ty_to_schema(ty))
     Name(constr_id={ id: Ident(name="Array"), .. }, tys=More(ety, ..), ..) =>
       Array(item=ty_to_schema(ety))
@@ -152,19 +152,21 @@ fn ty_to_schema(ty : @syntax.Type) -> Schema {
         | "BigInt"
         | "Result"
         | "Option" =>
-          abort("Json schema error: type \{name} is not supported yet.")
+          fail("Json schema error: type \{name} is not supported yet.")
         custom => Custom(custom)
       }
-    Tuple(..) => abort("Json schema error: tuple type is not supported yet.")
-    Object(_) => abort("Json schema error: trait object is not supported.")
-    Any(_) => abort("Internal error: Any")
-    Name(..) => abort("Json schema error: unsupported type")
-    Arrow(_) => abort("Json schema error: function type is not supported.")
+    Tuple(..) => fail("Json schema error: tuple type is not supported yet.")
+    Object(_) => fail("Json schema error: trait object is not supported.")
+    Any(_) => fail("Internal error: Any")
+    Name(..) => fail("Json schema error: unsupported type")
+    Arrow(_) => fail("Json schema error: function type is not supported.")
   }
 }
 
 ///|
-fn field_enumerate(attrs : List[@attribute.Attribute]) -> Array[Constant]? {
+fn field_enumerate(
+  attrs : List[@attribute.Attribute],
+) -> Array[Constant]? raise {
   fn is_string(x) {
     x is @attribute.Prop::Expr(String(_))
   }
@@ -182,7 +184,7 @@ fn field_enumerate(attrs : List[@attribute.Attribute]) -> Array[Constant]? {
           tail=Empty
         ) &&
         xs.all(is_string) else {
-        abort(
+        fail(
           (
             $| Json schema error: invalid enumerate attribute.
             $| Hint: The syntax is 
@@ -195,14 +197,14 @@ fn field_enumerate(attrs : List[@attribute.Attribute]) -> Array[Constant]? {
       let xs = xs
         .map(x => match x {
           Expr(String(s)) => s
-          _ => abort("unreachable")
+          _ => fail("unreachable")
         })
         .to_array()
       let enums = match name {
         "string" => xs.map(x => Constant::String(x))
         "integer" => xs.map(x => Constant::Integer(x))
         "number" => xs.map(x => Constant::Number(x))
-        _ => abort("unreachable")
+        _ => fail("unreachable")
       }
       break Some(enums)
     }
@@ -239,7 +241,7 @@ fn field_default(attrs : List[@attribute.Attribute]) -> Constant? {
 }
 
 ///|
-fn record_to_schema(fields : @list.List[@syntax.FieldDecl]) -> Schema {
+fn record_to_schema(fields : @list.List[@syntax.FieldDecl]) -> Schema raise {
   let properties = []
   let required = []
   for field in fields {
@@ -258,13 +260,13 @@ fn record_to_schema(fields : @list.List[@syntax.FieldDecl]) -> Schema {
     match (enums, schema) {
       (Some(_), String(..) as s) => s.enums = enums
       (Some(_), _) =>
-        abort(
+        fail(
           "Json schema error (\{field.loc}): currently the enumerate attribute is only allowed on string fields",
         )
       _ => ()
     }
     if !nullable && default is Some(_) {
-      abort(
+      fail(
         "Json schema error (\{field.loc}): a field with a default value must be of `T?` type.",
       )
     }
@@ -378,16 +380,18 @@ fn schema_to_ast(
 }
 
 ///|
-fn derive_schema(decl : @syntax.TypeDecl, private~ : Bool) -> @syntax.Impl {
+fn derive_schema(
+  decl : @syntax.TypeDecl,
+  private~ : Bool,
+) -> @syntax.Impl raise {
   let expr : @syntax.Expr = match decl.components {
-    TupleStruct(_) =>
-      abort("Internal error: tuple struct is not supported yet.")
-    Alias(_) => abort("Internal error: typealias is not supported yet.")
-    Error(_) => abort("Internal error: error type is not supported yet.")
-    Extern => abort("Internal error: extern type is not supported yet.")
-    Abstract => abort("Internal error: abstract type is not supported yet.")
-    Newtype(_) => abort("Internal error: newtype is not supported yet.")
-    Variant(_) => abort("Internal error: enum is not supported yet.")
+    TupleStruct(_) => fail("Internal error: tuple struct is not supported yet.")
+    Alias(_) => fail("Internal error: typealias is not supported yet.")
+    Error(_) => fail("Internal error: error type is not supported yet.")
+    Extern => fail("Internal error: extern type is not supported yet.")
+    Abstract => fail("Internal error: abstract type is not supported yet.")
+    Newtype(_) => fail("Internal error: newtype is not supported yet.")
+    Variant(_) => fail("Internal error: enum is not supported yet.")
     Record(fields) => {
       let schema = record_to_schema(fields)
       let definitions = []
@@ -442,16 +446,18 @@ fn derive_schema(decl : @syntax.TypeDecl, private~ : Bool) -> @syntax.Impl {
 }
 
 ///|
-fn derive_decode(decl : @syntax.TypeDecl, private~ : Bool) -> @syntax.Impl {
+fn derive_decode(
+  decl : @syntax.TypeDecl,
+  private~ : Bool,
+) -> @syntax.Impl raise {
   let expr : @syntax.Expr = match decl.components {
-    TupleStruct(_) =>
-      abort("Internal error: tuple struct is not supported yet.")
-    Alias(_) => abort("Internal error: typealias is not supported yet.")
-    Error(_) => abort("Internal error: error type is not supported yet.")
-    Extern => abort("Internal error: extern type is not supported yet.")
-    Abstract => abort("Internal error: abstract type is not supported yet.")
-    Newtype(_) => abort("Internal error: newtype is not supported yet.")
-    Variant(_) => abort("Internal error: enum is not supported yet.")
+    TupleStruct(_) => fail("Internal error: tuple struct is not supported yet.")
+    Alias(_) => fail("Internal error: typealias is not supported yet.")
+    Error(_) => fail("Internal error: error type is not supported yet.")
+    Extern => fail("Internal error: extern type is not supported yet.")
+    Abstract => fail("Internal error: abstract type is not supported yet.")
+    Newtype(_) => fail("Internal error: newtype is not supported yet.")
+    Variant(_) => fail("Internal error: enum is not supported yet.")
     Record(fields) => {
       let schema = record_to_schema(fields)
       let mut name_stamp = -1
@@ -461,7 +467,7 @@ fn derive_decode(decl : @syntax.TypeDecl, private~ : Bool) -> @syntax.Impl {
       }
 
       guard schema is Object(properties~, required=_) else {
-        abort("unreachable")
+        fail("unreachable")
       }
       let self_expr = e_id("self")
       let path_expr = e_id("path")
@@ -563,20 +569,22 @@ fn derive_decode(decl : @syntax.TypeDecl, private~ : Bool) -> @syntax.Impl {
 }
 
 ///|
-fn derive_encode(decl : @syntax.TypeDecl, private~ : Bool) -> @syntax.Impl {
+fn derive_encode(
+  decl : @syntax.TypeDecl,
+  private~ : Bool,
+) -> @syntax.Impl raise {
   let expr : @syntax.Expr = match decl.components {
-    TupleStruct(_) =>
-      abort("Internal error: tuple struct is not supported yet.")
-    Alias(_) => abort("Internal error: typealias is not supported yet.")
-    Error(_) => abort("Internal error: error type is not supported yet.")
-    Extern => abort("Internal error: extern type is not supported yet.")
-    Abstract => abort("Internal error: abstract type is not supported yet.")
-    Newtype(_) => abort("Internal error: newtype is not supported yet.")
-    Variant(_) => abort("Internal error: enum is not supported yet.")
+    TupleStruct(_) => fail("Internal error: tuple struct is not supported yet.")
+    Alias(_) => fail("Internal error: typealias is not supported yet.")
+    Error(_) => fail("Internal error: error type is not supported yet.")
+    Extern => fail("Internal error: extern type is not supported yet.")
+    Abstract => fail("Internal error: abstract type is not supported yet.")
+    Newtype(_) => fail("Internal error: newtype is not supported yet.")
+    Variant(_) => fail("Internal error: enum is not supported yet.")
     Record(fields) => {
       let schema = record_to_schema(fields)
       guard schema is Object(properties~, required=_) else {
-        abort("unreachable")
+        fail("unreachable")
       }
       let self_expr = e_id("self")
       let result_expr = e_id("result")
@@ -655,27 +663,25 @@ fn derive_encode(decl : @syntax.TypeDecl, private~ : Bool) -> @syntax.Impl {
 }
 
 ///|
-impl @syntax.IterVisitor for Env with visit_Impl_TopTypeDef(self, decl) {
+fn visit_top_type_def(env : Env, decl : @syntax.TypeDecl) -> Unit raise {
   let (decode, encode, schema) = is_json_derive(decl.attrs)
   if schema is Derive(private~) {
-    self.generated.push(derive_schema(decl, private~))
+    env.generated.push(derive_schema(decl, private~))
   }
   if decode is Derive(private~) {
-    self.generated.push(derive_decode(decl, private~))
+    env.generated.push(derive_decode(decl, private~))
   }
   if encode is Derive(private~) {
-    self.generated.push(derive_encode(decl, private~))
+    env.generated.push(derive_encode(decl, private~))
   }
 }
 
 ///|
-pub fn derive_json(impls : @syntax.Impls) -> @syntax.Impls {
+pub fn derive_json(impls : @syntax.Impls) -> @syntax.Impls raise {
   let self : Env = { generated: [] }
-  impls
-  .filter(impl_ => match impl_ {
-    TopImpl(attrs~, ..) if is_generated(attrs) => false
-    _ => true
+  impls.each(impl_ => match impl_ {
+    TopTypeDef(decl) => visit_top_type_def(self, decl)
+    _ => ()
   })
-  .each(x => self.visit_Impl(x))
   List::from_array(self.generated)
 }

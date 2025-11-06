@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "moonbitlang/json_deriving/internal/codegen"
+package "moonbitlang/json_deriving_codegen"
 
 import(
   "moonbitlang/core/list"
@@ -7,7 +7,7 @@ import(
 )
 
 // Values
-fn derive_json(@list.List[@syntax.Impl]) -> @list.List[@syntax.Impl]
+fn derive_json(@list.List[@syntax.Impl]) -> @list.List[@syntax.Impl] raise
 
 // Errors
 

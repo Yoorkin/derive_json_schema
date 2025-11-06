@@ -1,0 +1,34 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitlang/json_deriving_wasm/example"
+
+import(
+  "moonbitlang/json_deriving"
+)
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct Params {
+  kind : String
+  path : String
+  file_pattern : String?
+  context_lines : Int?
+  regex : String
+}
+fn Params::get_schema() -> Json
+impl Show for Params
+impl @json_deriving.Decode for Params
+impl @json_deriving.Encode for Params
+
+type Table
+fn Table::get_schema() -> Json
+impl Show for Table
+impl @json_deriving.Decode for Table
+impl @json_deriving.Encode for Table
+
+// Type aliases
+
+// Traits
+

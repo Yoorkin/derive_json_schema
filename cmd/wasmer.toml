@@ -7,7 +7,7 @@ description = 'Derive JSON schema for MoonBit'
 
 [[module]]
 name = 'json_derive'
-source = '../../target/wasm/release/build/internal/cmd/cmd.wasm'
+source = './target/wasm/release/build/json_deriving_wasm.wasm'
 abi = 'wasi'
 
 [module.interfaces]

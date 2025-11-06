@@ -1,5 +1,5 @@
 ///|
-using @codegen {derive_json}
+using @json_deriving_codegen {derive_json}
 
 ///|
 fn main {

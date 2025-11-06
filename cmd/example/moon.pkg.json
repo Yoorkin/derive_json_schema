@@ -1,7 +1,7 @@
 {
   "pre-build": [
     {
-      "command": "cat $input | wasmer run --dir $mod_dir ../internal/cmd | moonfmt - > $output",
+      "command": "set -o pipefail && cat $input | wasmer run --dir $mod_dir . | moonfmt - > $output",
       "input": "input.mbt",
       "output": "output.mbt"
     }
