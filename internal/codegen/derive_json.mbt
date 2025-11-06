@@ -7,33 +7,6 @@ priv struct Env {
 using @list {type List, empty}
 
 ///|
-const NAMESPACE = "json"
-
-///|
-const DERIVE = "derive"
-
-///|
-const PRIVATE_DERIVE = "private_derive"
-
-///|
-const DEFAULT = "default"
-
-///|
-const ENUM = "enumerate"
-
-///|
-const GENERATED = "generated"
-
-///|
-const DECODE = "Decode"
-
-///|
-const ENCODE = "Encode"
-
-///|
-const SCHEMA = "Schema"
-
-///|
 fn is_json_derive(
   attrs : List[@attribute.Attribute],
 ) -> (DeriveFlag, DeriveFlag, DeriveFlag) {
@@ -593,8 +566,6 @@ fn derive_decode(decl : @syntax.TypeDecl, private~ : Bool) -> @syntax.Impl {
   )
 }
 
-///|
-let pkg = "moonbitlang/json_derive/runtime"
 
 ///|
 fn derive_encode(decl : @syntax.TypeDecl, private~ : Bool) -> @syntax.Impl {

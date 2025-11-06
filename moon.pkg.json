@@ -1,5 +1,1 @@
-{
-    "import": [
-        "moonbitlang/json_derive/runtime"
-    ]
-}
+{}

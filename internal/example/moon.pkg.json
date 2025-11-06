@@ -7,6 +7,6 @@
     }
   ],
   "import": [
-    { "path": "moonbitlang/json_derive/runtime", "alias": "json_derive" }
+    "moonbitlang/json_derive"
   ]
 }

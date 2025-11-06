@@ -8,6 +8,7 @@ pub(all) enum Path {
 ///|
 pub suberror DecodeError (Path, Json)
 
+///|
 pub impl Show for Path with output(self, buf) {
   match self {
     Root => buf.write_string("$root")
@@ -22,12 +23,14 @@ pub impl Show for Path with output(self, buf) {
   }
 }
 
+///|
 pub impl Show for DecodeError with output(self, buf) {
   let DecodeError((path, json)) = self
-  buf..write_string("Failed to decode json at ")
-     ..write_string(path.to_string())
-     ..write_string(":\n")
-     ..write_string(json.stringify(indent=2))
+  buf
+  ..write_string("Failed to decode json at ")
+  ..write_string(path.to_string())
+  ..write_string(":\n")
+  ..write_string(json.stringify(indent=2))
 }
 
 ///|
@@ -49,10 +52,6 @@ pub fn[T : Decode] decode(json : Json, path? : Path) -> T raise DecodeError {
 }
 
 ///|
-pub fn[T] fail(
-  path : Path,
-  json : Json,
-) -> T raise DecodeError {
+pub fn[T] fail(path : Path, json : Json) -> T raise DecodeError {
   raise DecodeError((path, json))
 }
-
